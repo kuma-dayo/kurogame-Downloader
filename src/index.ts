@@ -20,7 +20,7 @@ const downloadResource = async (resource) => {
 
   const fileStream = fs.createWriteStream("data" + resource.dest)
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const request = https.get(url, (res) => {
       res.pipe(fileStream)
       fileStream.on("finish", () => {
         console.log("download success", resource.dest)
@@ -29,6 +29,17 @@ const downloadResource = async (resource) => {
       fileStream.on("error", (err) => {
         reject(err)
       })
+    })
+    request.on("error", (err) => {
+      console.error("download error", resource.dest, err)
+      reject(err)
+    })
+    request.setTimeout(60000, () => {
+      console.error("download timeout", resource.dest)
+      request.destroy()
+      setTimeout(() => {
+        downloadResource(resource).then(resolve).catch(reject)
+      }, 5000)
     })
   })
 }
